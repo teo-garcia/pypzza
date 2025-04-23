@@ -1,0 +1,144 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Python Best Practices for PyPzza
+
+## Code Style & Structure
+
+- Follow PEP 8 style guide for Python code
+  ```python
+  # ✅ Good: Clear function names with snake_case
+  def calculate_total_price(order_items):
+      pass
+
+  # ❌ Bad: Unclear names or camelCase
+  def calcPrice(items):
+      pass
+  ```
+
+- Use meaningful variable names that explain their purpose
+  ```python
+  # ✅ Good: Clear what these variables represent
+  customer_name = "John"
+  order_total = 25.99
+  
+  # ❌ Bad: Unclear abbreviations
+  cust = "John"
+  tot = 25.99
+  ```
+
+## Type Hints & Documentation
+
+- Use type hints for function parameters and return values
+  ```python
+  # ✅ Good: Clear parameter and return types
+  def add_topping(pizza: dict, topping: str) -> dict:
+      """Add a topping to the pizza and return updated pizza."""
+      return pizza
+  
+  # ❌ Bad: No type hints
+  def add_topping(pizza, topping):
+      return pizza
+  ```
+
+## Error Handling
+
+- Use try/except blocks to handle specific exceptions
+  ```python
+  # ✅ Good: Specific exception handling
+  try:
+      with open("orders.json", "r") as f:
+          data = json.load(f)
+  except FileNotFoundError:
+      data = []
+  except json.JSONDecodeError:
+      print("Invalid JSON file")
+      data = []
+  
+  # ❌ Bad: Catching all exceptions
+  try:
+      data = json.load(open("orders.json"))
+  except:  # Don't do this!
+      data = []
+  ```
+
+## File Operations
+
+- Always use context managers (with statements) for file operations
+  ```python
+  # ✅ Good: File automatically closes after use
+  with open("orders.json", "w") as f:
+      json.dump(data, f)
+  
+  # ❌ Bad: Manual file handling
+  f = open("orders.json", "w")
+  json.dump(data, f)
+  f.close()  # Could be forgotten!
+  ```
+
+## Constants & Configuration
+
+- Define constants at the module level in UPPERCASE
+  ```python
+  # ✅ Good: Clear constants
+  PIZZA_SIZES = {
+      "small": 10.99,
+      "medium": 14.99,
+      "large": 18.99
+  }
+  
+  # ❌ Bad: Magic numbers in code
+  if size == "small":
+      price = 10.99  # Hard to maintain
+  ```
+
+## Project Structure
+
+- Keep related code in separate modules
+- Use __init__.py files to make directories into packages
+- Store data files in the data/ directory
+- Keep main.py clean and focused on the CLI interface
+
+## Rich Library Usage
+
+- Use Rich for all console output to maintain consistency
+  ```python
+  # ✅ Good: Consistent styling with Rich
+  from rich import print
+  from rich.table import Table
+  
+  # For tables
+  table = Table(title="Pizza Orders")
+  table.add_column("ID")
+  table.add_column("Customer")
+  
+  # For colored output
+  print("[green]Order created successfully![/green]")
+  ```
+
+## Data Validation
+
+- Validate input data before processing
+  ```python
+  # ✅ Good: Input validation
+  def create_order(customer_name: str, size: str) -> dict:
+      if not customer_name.strip():
+          raise ValueError("Customer name cannot be empty")
+      if size not in PIZZA_SIZES:
+          raise ValueError(f"Invalid size. Choose from: {list(PIZZA_SIZES)}")
+  ```
+
+## Testing (When Added)
+
+- Write tests in a tests/ directory
+- Use descriptive test names that explain the scenario
+- Use pytest for testing framework
+
+Remember:
+- Keep functions small and focused
+- Document complex logic with comments
+- Use meaningful commit messages
+- Handle errors gracefully
+- Keep the code simple and readable

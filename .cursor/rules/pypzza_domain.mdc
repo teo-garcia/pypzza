@@ -1,0 +1,75 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# PyPzza Domain Rules
+
+## Order States
+
+Orders must follow this state flow:
+```
+PENDING -> PREPARING -> READY -> DELIVERED
+```
+
+## Data Models
+
+### Order Structure
+```python
+Order = {
+    "id": str,              # UUID format
+    "customer_name": str,   # Non-empty string
+    "pizza_size": str,      # One of: small, medium, large
+    "toppings": list,       # List of strings
+    "status": str,          # One of the order states
+    "price": float,         # Calculated based on size and toppings
+    "created_at": str       # ISO format datetime string
+}
+```
+
+## Business Rules
+
+### Pizza Sizes and Base Prices
+```python
+PIZZA_SIZES = {
+    "small": 10.99,
+    "medium": 14.99,
+    "large": 18.99
+}
+```
+
+### Toppings
+```python
+AVAILABLE_TOPPINGS = [
+    "cheese",
+    "pepperoni",
+    "mushrooms",
+    "onions",
+    "sausage",
+    "bacon",
+    "green_peppers",
+    "olives"
+]
+
+TOPPING_PRICE = 1.50  # Price per topping
+```
+
+### Price Calculation
+- Base price determined by pizza size
+- Each topping adds TOPPING_PRICE to total
+- Prices should be rounded to 2 decimal places
+
+### Validation Rules
+- Customer name must not be empty
+- Pizza size must be one of the defined sizes
+- Toppings must be from the available list
+- Order status must follow the defined flow
+- Price must be greater than 0
+
+## File Storage
+
+- Orders are stored in JSON format
+- File path: data/orders.json
+- Each order is uniquely identified by UUID
+- File should be created if it doesn't exist
+- Empty file should initialize with empty list []
