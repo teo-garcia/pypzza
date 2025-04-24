@@ -1,38 +1,45 @@
 """
 PyPzza - A simple CLI pizza order management system.
 
-This module provides the command-line interface for the PyPzza application.
-It uses the Rich library for enhanced terminal output and user interaction.
+What is this file?
+-----------------
+This is the main entry point of our pizza ordering system. It:
+1. Shows menus and gets user input
+2. Manages orders (create, update, view, delete)
+3. Displays results in a nice format
+4. Controls the program flow
 
-Key Features:
-- Create new orders with custom toppings
-- List and manage existing orders
-- Update order status
-- View detailed order information
-- Delete orders
+We use the Rich library to make our terminal output look nice,
+similar to how CSS styles web pages.
 """
-from typing import List
-from rich.console import Console     # Rich's main interface for terminal output
-from rich.table import Table        # For creating formatted tables
-from rich.prompt import Prompt, Confirm  # For user input with validation
-from rich import print as rprint    # Enhanced print function with markup
 
+# Import standard Python tools
+# --------------------------
+from typing import List  # Like types in TypeScript
+
+# Rich library for fancy terminal output
+# -----------------------------------
+from rich.console import Console    # Main output tool
+from rich.table import Table       # Creates formatted tables
+from rich.prompt import Prompt     # Input with validation
+from rich.prompt import Confirm    # Yes/no questions
+from rich import print as rprint   # Fancy print with colors
+
+# Our custom modules
+# ----------------
 from order import (
     create_order, update_order_status,
     PIZZA_SIZES, AVAILABLE_TOPPINGS, ORDER_STATES
 )
 import storage
 
-# Create console instance for Rich formatting
+# Create console for fancy output (shared across functions)
 console = Console()
 
 def print_menu() -> None:
     """
-    Display the main menu with Rich formatting.
-    
-    Uses:
-    - console.print: Rich's formatted output
-    - [bold blue]: Rich's markup for styling
+    Shows the main menu options to the user.
+    Uses Rich's color syntax: [color]text[/color]
     """
     console.print("\n[bold blue]PyPzza Order Management[/bold blue]")
     console.print("\n1. Create new order")
@@ -44,148 +51,172 @@ def print_menu() -> None:
 
 def get_toppings() -> List[str]:
     """
-    Interactive topping selection interface.
-    
-    Flow:
-    1. Display available toppings
-    2. Loop for user input
-    3. Validate and add selections
-    4. Continue until user finishes
-    
-    Uses:
-    - enumerate: Generate numbered list
-    - Prompt.ask: Rich's input prompt
-    - rprint: Colored status messages
+    Interactive topping selection.
     
     Returns:
-        List[str]: Selected toppings
+        List of chosen topping names
+    
+    Note: Uses enumerate(list, start=1) to show:
+    1. cheese
+    2. pepperoni
+    etc.
     """
     console.print("\n[bold]Available toppings:[/bold]")
-    # enumerate with start=1 for human-friendly numbering
-    for i, topping in enumerate(AVAILABLE_TOPPINGS, 1):
-        console.print(f"{i}. {topping}")
     
-    toppings = []
-    while True:
-        # Prompt with empty default to allow finishing
-        topping_num = Prompt.ask(
+    # enumerate is a special Python function that gives us both the position and value
+    # when we write: for position, topping in enumerate(AVAILABLE_TOPPINGS, start=1)
+    # it's like doing:
+    #   position = 1
+    #   for topping in AVAILABLE_TOPPINGS:
+    #       print(f"{position}. {topping}")
+    #       position += 1
+    for position, topping in enumerate(AVAILABLE_TOPPINGS, start=1):
+        console.print(f"{position}. {topping}")
+    
+    # This will store our chosen toppings
+    selected_toppings = []
+    
+    while True:  # This is an infinite loop - it keeps going until we 'break'
+        # Prompt.ask is a fancy input function that:
+        # 1. Shows the message in a nice format
+        # 2. Gets user input
+        # 3. If default="", pressing Enter returns an empty string
+        topping_number = Prompt.ask(
             "\nEnter topping number (or press Enter to finish)",
             default=""
         )
-        if not topping_num:
+        
+        # If user just pressed Enter (empty string), exit the loop
+        if not topping_number:
             break
         
         try:
-            idx = int(topping_num) - 1  # Convert to 0-based index
-            if 0 <= idx < len(AVAILABLE_TOPPINGS):
-                topping = AVAILABLE_TOPPINGS[idx]
-                if topping not in toppings:
-                    toppings.append(topping)
-                    rprint(f"[green]Added {topping}[/green]")
+            # Convert string to number and adjust for 0-based index
+            # We subtract 1 because lists start at 0, but we showed numbers starting at 1
+            # Example: User enters "1", we need index 0 to get first topping
+            index = int(topping_number) - 1
+            
+            # Check if index is valid (between 0 and number of toppings)
+            # This is like: if (index >= 0 && index < AVAILABLE_TOPPINGS.length)
+            if 0 <= index < len(AVAILABLE_TOPPINGS):
+                chosen_topping = AVAILABLE_TOPPINGS[index]
+                
+                # not in checks if something isn't in a list
+                # It's like: !array.includes(item) in JavaScript
+                if chosen_topping not in selected_toppings:
+                    selected_toppings.append(chosen_topping)  # Add to end of list
+                    rprint(f"[green]Added {chosen_topping}[/green]")
                 else:
-                    rprint(f"[yellow]'{topping}' already added[/yellow]")
+                    rprint(f"[yellow]'{chosen_topping}' already added[/yellow]")
             else:
                 rprint("[red]Invalid topping number[/red]")
         except ValueError:
+            # This happens when int(topping_number) fails
+            # (when user types something that's not a number)
             rprint("[red]Please enter a valid number[/red]")
     
-    return toppings
+    return selected_toppings
 
 def create_new_order() -> None:
     """
-    Handle new order creation workflow.
+    Creates a new pizza order:
+    1. Gets customer info
+    2. Shows size options
+    3. Gets toppings
+    4. Saves order
     
-    Flow:
-    1. Get customer name
-    2. Display and select size
-    3. Select toppings
-    4. Create and save order
-    
-    Uses:
-    - Prompt.ask: User input with validation
-    - create_order: Business logic
-    - storage.add_order: Data persistence
+    Note: Uses Rich's Prompt for validated input
     """
     console.print("\n[bold]Create New Order[/bold]")
     
+    # Simple input with no validation
     customer_name = Prompt.ask("Customer name")
     
     console.print("\n[bold]Available sizes:[/bold]")
+    # items() gives us both keys and values from a dictionary
+    # It's like Object.entries() in JavaScript
+    # Example: for ('small', 10.99) in PIZZA_SIZES.items():
     for size, price in PIZZA_SIZES.items():
+        # f-strings (f"...") let us put variables inside strings
+        # Example: f"small: $10.99"
         console.print(f"- {size}: ${price}")
     
-    # Prompt with choices ensures valid input
-    size = Prompt.ask("Pizza size", choices=list(PIZZA_SIZES.keys()))
+    # Prompt.ask with choices ensures user can only enter valid sizes
+    # choices=list(...) converts dict_keys to a list
+    # Example: choices=['small', 'medium', 'large']
+    size = Prompt.ask(
+        "Pizza size",
+        choices=list(PIZZA_SIZES.keys())
+    )
+    
     toppings = get_toppings()
     
     try:
-        order = create_order(customer_name, size, toppings)
-        storage.add_order(order)
-        rprint(f"\n[green]Order created successfully! Order ID: {order['id']}[/green]")
-    except ValueError as e:
-        rprint(f"\n[red]Error: {e}[/red]")
+        # create_order might raise ValueError if something's invalid
+        new_order = create_order(customer_name, size, toppings)
+        storage.add_order(new_order)
+        rprint(f"\n[green]Order created successfully! Order ID: {new_order['id']}[/green]")
+    except ValueError as error:
+        # If create_order raised an error, show it in red
+        rprint(f"\n[red]Error: {error}[/red]")
 
 def display_orders(orders: List[dict]) -> None:
     """
-    Display orders in a formatted table.
-    
-    Uses:
-    - Rich.Table: Create formatted tables
-    - String slicing: Truncate long IDs
+    Shows orders in a formatted table.
     
     Args:
-        orders: List of order dictionaries to display
+        orders: List of order dictionaries
+    
+    Note: Uses Rich's Table with colored columns
     """
-    if not orders:
+    if not orders:  # Empty list is considered False in Python
         console.print("[yellow]No orders found[/yellow]")
         return
     
+    # Create a Rich table with a title
     table = Table(title="Pizza Orders")
-    # Add columns with styles
+    
+    # Add columns with different styles
+    # Each column can have its own color
     table.add_column("ID", style="cyan")
     table.add_column("Customer", style="magenta")
     table.add_column("Size", style="blue")
     table.add_column("Status", style="green")
     table.add_column("Price", style="yellow")
     
+    # Add each order as a row
     for order in orders:
         table.add_row(
-            order["id"][:8] + "...",  # Show only first 8 chars of UUID
+            # String slicing: [start:end]
+            # [:8] means "from start to position 8"
+            # So "123456789" becomes "12345678"
+            order["id"][:8] + "...",  # Show first 8 chars of ID
             order["customer_name"],
             order["pizza_size"],
             order["status"],
-            f"${order['price']}"
+            f"${order['price']}"  # Format price with $ sign
         )
     
     console.print(table)
 
 def list_orders() -> None:
     """
-    Handle listing all orders.
-    
-    Flow:
-    1. Load orders from storage
-    2. Display in formatted table
+    Displays all orders in the system.
+    Loads from storage and formats in a table.
     """
     console.print("\n[bold]All Orders[/bold]")
+    # Get orders from storage and display them
     orders = storage.load_orders()
     display_orders(orders)
 
 def update_status() -> None:
     """
-    Handle order status update workflow.
+    Updates an order's status.
     
     Flow:
-    1. Get order ID
-    2. Validate order exists
-    3. Check current status
-    4. Confirm and update
+    PENDING -> PREPARING -> READY -> DELIVERED
     
-    Uses:
-    - Prompt.ask: Get order ID
-    - Confirm.ask: Yes/no confirmation
-    - update_order_status: Business logic
-    - storage.update_order: Persist changes
+    Note: Validates current status before updating
     """
     order_id = Prompt.ask("Enter order ID")
     order = storage.get_order(order_id)
@@ -195,34 +226,35 @@ def update_status() -> None:
         return
     
     current_status = order["status"]
+    # index() finds the position of an item in a list
+    # Example: ['a', 'b', 'c'].index('b') returns 1
     current_idx = ORDER_STATES.index(current_status)
     
+    # Check if we're at the last status
+    # len(list) - 1 is the last valid index
     if current_idx == len(ORDER_STATES) - 1:
         rprint("[yellow]Order is already in final state (DELIVERED)[/yellow]")
         return
     
+    # Get next status from the list
+    # list[index] gets item at position
     next_status = ORDER_STATES[current_idx + 1]
+    
+    # Ask for confirmation
     if Confirm.ask(f"Update order status to {next_status}?"):
         try:
             updated_order = update_order_status(order, next_status)
             storage.update_order(order_id, updated_order)
             rprint(f"[green]Status updated to {next_status}[/green]")
-        except ValueError as e:
-            rprint(f"[red]Error: {e}[/red]")
+        except ValueError as error:
+            rprint(f"[red]Error: {error}[/red]")
 
 def view_order_details() -> None:
     """
-    Handle viewing detailed order information.
+    Shows complete details for one order.
     
-    Flow:
-    1. Get order ID
-    2. Fetch order details
-    3. Display formatted information
-    
-    Uses:
-    - Prompt.ask: Get order ID
-    - storage.get_order: Fetch order
-    - console.print: Formatted output
+    Note: Uses join() to format toppings list:
+    "cheese, pepperoni, mushrooms"
     """
     order_id = Prompt.ask("Enter order ID")
     order = storage.get_order(order_id)
@@ -235,6 +267,9 @@ def view_order_details() -> None:
     console.print(f"ID: {order['id']}")
     console.print(f"Customer: {order['customer_name']}")
     console.print(f"Size: {order['pizza_size']}")
+    # join() combines list items with a separator
+    # Example: ', '.join(['a', 'b', 'c']) becomes "a, b, c"
+    # or 'No toppings' if the list is empty (which is False in Python)
     console.print(f"Toppings: {', '.join(order['toppings']) or 'No toppings'}")
     console.print(f"Status: {order['status']}")
     console.print(f"Price: ${order['price']}")
@@ -242,19 +277,14 @@ def view_order_details() -> None:
 
 def delete_order_by_id() -> None:
     """
-    Handle order deletion.
-    
-    Flow:
-    1. Get order ID
-    2. Attempt deletion
-    3. Show result
-    
-    Uses:
-    - Prompt.ask: Get order ID
-    - storage.delete_order: Remove order
+    Removes an order from the system.
+    Confirms successful deletion.
     """
+    # Get order ID from user
     order_id = Prompt.ask("Enter order ID")
     
+    # Try to delete the order
+    # delete_order returns True if successful, False if not found
     if storage.delete_order(order_id):
         rprint("[green]Order deleted successfully[/green]")
     else:
@@ -265,19 +295,21 @@ def main() -> None:
     Main program loop.
     
     Flow:
-    1. Display menu
-    2. Get user choice
-    3. Execute selected action
+    1. Show menu
+    2. Get valid choice
+    3. Execute chosen action
     4. Repeat until exit
-    
-    Uses:
-    - Prompt.ask: Menu selection
-    - Confirm.ask: Exit confirmation
     """
-    while True:
+    while True:  # Keep running until we break the loop
+        # Show menu and get choice
         print_menu()
-        choice = Prompt.ask("\nSelect an option", choices=["1", "2", "3", "4", "5", "6"])
+        choice = Prompt.ask(
+            "\nSelect an option",
+            # User can only enter these numbers
+            choices=["1", "2", "3", "4", "5", "6"]
+        )
         
+        # Do different things based on user's choice
         if choice == "1":
             create_new_order()
         elif choice == "2":
@@ -288,10 +320,13 @@ def main() -> None:
             view_order_details()
         elif choice == "5":
             delete_order_by_id()
-        else:
+        else:  # choice must be "6" because of our choices parameter
+            # Ask for confirmation before exiting
             if Confirm.ask("\nAre you sure you want to exit?"):
                 console.print("[bold blue]Thank you for using PyPzza![/bold blue]")
-                break
+                break  # Exit the loop, ending the program
 
+# Program entry point check
+# Similar to checking if this is the main module
 if __name__ == "__main__":
     main() 

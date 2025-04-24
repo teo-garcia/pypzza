@@ -50,22 +50,7 @@ ORDER_STATES = ["PENDING", "PREPARING", "READY", "DELIVERED"]
 def validate_order_data(customer_name: str, size: str, toppings: List[str]) -> None:
     """
     Validate order data against business rules.
-    JS equivalent:
-    ```js
-    function validateOrderData(customerName, size, toppings) {
-        if (!customerName.trim()) {
-            throw new Error('Customer name cannot be empty');
-        }
-        if (!PIZZA_SIZES.hasOwnProperty(size)) {
-            throw new Error(`Invalid size. Choose from: ${Object.keys(PIZZA_SIZES)}`);
-        }
-        const invalidToppings = toppings.filter(t => !AVAILABLE_TOPPINGS.includes(t));
-        if (invalidToppings.length) {
-            throw new Error(`Invalid toppings: ${invalidToppings}`);
-        }
-    }
-    ```
-    """
+    """ 
     # strip() removes whitespace (like trim() in JS)
     if not customer_name.strip():
         raise ValueError("Customer name cannot be empty")
@@ -83,14 +68,6 @@ def validate_order_data(customer_name: str, size: str, toppings: List[str]) -> N
 def calculate_price(size: str, toppings: List[str]) -> float:
     """
     Calculate total price based on size and toppings.
-    JS equivalent:
-    ```js
-    function calculatePrice(size, toppings) {
-        const basePrice = PIZZA_SIZES[size];
-        const toppingsPrice = toppings.length * TOPPING_PRICE;
-        return Number((basePrice + toppingsPrice).toFixed(2));
-    }
-    ```
     """
     base_price = PIZZA_SIZES[size]
     # len() gets length (like array.length in JS)
@@ -101,21 +78,6 @@ def calculate_price(size: str, toppings: List[str]) -> float:
 def create_order(customer_name: str, size: str, toppings: List[str]) -> Dict[str, Any]:
     """
     Create a new order with validated data.
-    JS equivalent:
-    ```js
-    function createOrder(customerName, size, toppings) {
-        validateOrderData(customerName, size, toppings);
-        return {
-            id: crypto.randomUUID(),
-            customerName: customerName.trim(),
-            pizzaSize: size,
-            toppings,
-            status: 'PENDING',
-            price: calculatePrice(size, toppings),
-            createdAt: new Date().toISOString()
-        };
-    }
-    ```
     """
     validate_order_data(customer_name, size, toppings)
     
@@ -134,19 +96,6 @@ def create_order(customer_name: str, size: str, toppings: List[str]) -> Dict[str
 def validate_status_transition(current_status: str, new_status: str) -> None:
     """
     Validate if the status transition is allowed.
-    JS equivalent:
-    ```js
-    function validateStatusTransition(currentStatus, newStatus) {
-        const currentIdx = ORDER_STATES.indexOf(currentStatus);
-        const newIdx = ORDER_STATES.indexOf(newStatus);
-        if (newIdx !== currentIdx + 1) {
-            throw new Error(
-                `Invalid transition from ${currentStatus} to ${newStatus}. ` +
-                `Valid next status: ${ORDER_STATES[currentIdx + 1]}`
-            );
-        }
-    }
-    ```
     """
     # index() is like indexOf() in JS
     current_idx = ORDER_STATES.index(current_status)
@@ -163,19 +112,6 @@ def validate_status_transition(current_status: str, new_status: str) -> None:
 def update_order_status(order: Dict[str, Any], new_status: str) -> Dict[str, Any]:
     """
     Update order status if transition is valid.
-    JS equivalent:
-    ```js
-    function updateOrderStatus(order, newStatus) {
-        if (!ORDER_STATES.includes(newStatus)) {
-            throw new Error(`Invalid status. Choose from: ${ORDER_STATES}`);
-        }
-        if (order.status !== newStatus) {
-            validateStatusTransition(order.status, newStatus);
-            order.status = newStatus;
-        }
-        return order;
-    }
-    ```
     """
     # Check if status is valid
     if new_status not in ORDER_STATES:
